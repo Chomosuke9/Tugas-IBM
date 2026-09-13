@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Riwayat – NutriAI</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* History-specific extras */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.5rem; font-weight: 700; }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+    .stat-card.s-cal .stat-value { color: var(--orange); }
+    .stat-card.s-prot .stat-value { color: var(--green); }
+    .stat-card.s-carb .stat-value { color: var(--blue); }
+    .stat-card.s-fat .stat-value { color: var(--pink); }
+
+    .week-chart {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px 14px;
+      margin-bottom: 36px;
+    }
+    .week-chart-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      font-weight: 500;
+    }
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      height: 100px;
+    }
+    .chart-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .chart-bar-wrap {
+      width: 100%;
+      height: 80px;
+      display: flex;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--border);
+    }
+    .chart-bar {
+      width: 100%;
+      background: var(--accent);
+      border-radius: 4px 4px 0 0;
+      opacity: 0.7;
+      min-height: 3px;
+      transition: height 0.5s ease;
+    }
+    .chart-bar.today { opacity: 1; background: var(--accent); }
+    .chart-col-label { font-size: 0.7rem; color: var(--text-dim); }
+    .chart-col-val { font-size: 0.7rem; color: var(--text-muted); }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .search-row .filter-input { flex: 1; min-width: 160px; }
+
+    .clear-all-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 7px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: var(--transition);
+    }
+    .clear-all-btn:hover { border-color: var(--red); color: var(--red); }
+
+    .history-empty {
+      text-align: center;
+      color: var(--text-dim);
+      padding: 60px 20px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 700px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-icon">🥗</span>
+      <span class="nav-title">NutriAI</span>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <a href="history.html" class="nav-link active">Riwayat</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+
+    <!-- PAGE HEADER -->
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <h1 style="font-size:1.4rem;font-weight:700;">📊 Riwayat Nutrisi</h1>
+      <span style="font-size:0.82rem;color:var(--text-muted);" id="histRange"></span>
+    </div>
+
+    <!-- 7-DAY AVERAGE STATS -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card s-cal"><div class="stat-value" id="avgCal">–</div><div class="stat-label">Rata-rata Kalori/Hari</div></div>
+      <div class="stat-card s-prot"><div class="stat-value" id="avgProt">–</div><div class="stat-label">Rata-rata Protein/Hari</div></div>
+      <div class="stat-card s-carb"><div class="stat-value" id="avgCarb">–</div><div class="stat-label">Rata-rata Karbo/Hari</div></div>
+      <div class="stat-card s-fat"><div class="stat-value" id="avgFat">–</div><div class="stat-label">Rata-rata Lemak/Hari</div></div>
+    </div>
+
+    <!-- 7-DAY BAR CHART -->
+    <div class="week-chart">
+      <div class="week-chart-title">Kalori 7 Hari Terakhir</div>
+      <div class="chart-bars" id="chartBars"></div>
+    </div>
+
+    <!-- SEARCH & FILTERS -->
+    <div class="search-row">
+      <input type="search" class="filter-input" id="searchInput" placeholder="🔍 Cari makanan..." />
+      <input type="date" class="filter-input" id="dateFilter" style="max-width:160px;" />
+      <button class="clear-all-btn" id="btnClearAll">🗑 Hapus Semua Data</button>
+    </div>
+
+    <!-- LOG HISTORY -->
+    <div id="historyContainer"></div>
+
+  </main>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+  <script>
+    /* ── History Page Logic ── */
+
+    const DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+    function getDateRange(days) {
+      const result = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        result.push(d.toISOString().slice(0, 10));
+      }
+      return result;
+    }
+
+    function groupLogsByDate(logs) {
+      const map = {};
+      logs.forEach(l => {
+        if (!map[l.date]) map[l.date] = [];
+        map[l.date].push(l);
+      });
+      return map;
+    }
+
+    function sumNutrients(logs) {
+      return logs.reduce((acc, l) => {
+        const n = l.nutrients || {};
+        acc.calories += n.calories || 0;
+        acc.protein  += n.protein  || 0;
+        acc.carbs    += n.carbs    || 0;
+        acc.fat      += n.fat      || 0;
+        return acc;
+      }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+    }
+
+    function renderWeekChart(grouped) {
+      const last7 = getDateRange(7);
+      const maxCal = Math.max(...last7.map(d => sumNutrients(grouped[d] || []).calories), 1);
+      const today = getTodayKey();
+
+      $('chartBars').innerHTML = last7.map(dateKey => {
+        const dayLogs = grouped[dateKey] || [];
+        const cal = Math.round(sumNutrients(dayLogs).calories);
+        const pct = Math.max(2, Math.round((cal / maxCal) * 80));
+        const dow = DAYS_SHORT[new Date(dateKey + 'T00:00:00').getDay()];
+        const isToday = dateKey === today;
+        return `
+          <div class="chart-col">
+            <div class="chart-bar-wrap">
+              <div class="chart-bar ${isToday ? 'today' : ''}" style="height:${pct}px" title="${cal} kcal"></div>
+            </div>
+            <span class="chart-col-label" style="${isToday ? 'color:var(--accent);font-weight:600' : ''}">${dow}</span>
+            <span class="chart-col-val">${cal > 0 ? cal : ''}</span>
+          </div>`;
+      }).join('');
+    }
+
+    function renderAvgStats(grouped) {
+      const last7 = getDateRange(7);
+      const activeDays = last7.filter(d => (grouped[d] || []).length > 0);
+      if (activeDays.length === 0) { return; }
+      const totals = activeDays.reduce((acc, d) => {
+        const s = sumNutrients(grouped[d]);
+        acc.calories += s.calories; acc.protein += s.protein;
+        acc.carbs += s.carbs; acc.fat += s.fat;
+        return acc;
+      }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      const n = activeDays.length;
+      $('avgCal').textContent  = Math.round(totals.calories / n);
+      $('avgProt').textContent = Math.round(totals.protein  / n) + 'g';
+      $('avgCarb').textContent = Math.round(totals.carbs    / n) + 'g';
+      $('avgFat').textContent  = Math.round(totals.fat      / n) + 'g';
+    }
+
+    function renderHistory(logs, grouped) {
+      const container = $('historyContainer');
+
+      if (logs.length === 0) {
+        container.innerHTML = '<div class="history-empty">Belum ada data riwayat. Mulai scan makanan dari Dashboard! 🍽️</div>';
+        return;
+      }
+
+      // Sort dates newest first
+      const allDates = [...new Set(logs.map(l => l.date))].sort((a, b) => b.localeCompare(a));
+      const today = getTodayKey();
+
+      container.innerHTML = allDates.map(dateKey => {
+        const dayLogs = (grouped[dateKey] || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const totals = sumNutrients(dayLogs);
+        const label = dateKey === today ? '📅 Hari Ini' : formatDate(dateKey);
+
+        const items = dayLogs.map(log => {
+          const n = log.nutrients || {};
+          return `
+            <div class="log-item" data-id="${log.id}" style="margin-bottom:8px;">
+              <span class="log-item-time">${formatTime(log.timestamp)}</span>
+              <div style="flex:1;min-width:0">
+                <div class="log-item-name">${escapeHtml(log.foodName)}</div>
+                <div class="log-item-serving">${escapeHtml(log.servingSize || '')}</div>
+              </div>
+              <div class="log-item-nutrients">
+                <div class="log-nutrient cal"><span class="log-nutrient-val">${Math.round(n.calories ?? 0)}</span><span class="log-nutrient-lbl">kcal</span></div>
+                <div class="log-nutrient prot"><span class="log-nutrient-val">${Math.round(n.protein ?? 0)}g</span><span class="log-nutrient-lbl">prot</span></div>
+                <div class="log-nutrient carb"><span class="log-nutrient-val">${Math.round(n.carbs ?? 0)}g</span><span class="log-nutrient-lbl">karbo</span></div>
+                <div class="log-nutrient fat"><span class="log-nutrient-val">${Math.round(n.fat ?? 0)}g</span><span class="log-nutrient-lbl">lemak</span></div>
+              </div>
+              <button class="log-item-del" title="Hapus" data-id="${log.id}">🗑</button>
+            </div>`;
+        }).join('');
+
+        return `
+          <div class="history-day-group">
+            <div class="history-day-header">
+              <span class="history-day-title">${label}</span>
+              <div class="history-day-totals">
+                <span><b>${Math.round(totals.calories)}</b> kcal</span>
+                <span><b>${Math.round(totals.protein)}g</b> prot</span>
+                <span><b>${Math.round(totals.carbs)}g</b> karbo</span>
+                <span><b>${Math.round(totals.fat)}g</b> lemak</span>
+              </div>
+            </div>
+            ${items}
+          </div>`;
+      }).join('');
+    }
+
+    function filterLogs(logs, query, dateKey) {
+      let filtered = [...logs];
+      if (query) {
+        const q = query.toLowerCase();
+        filtered = filtered.filter(l => l.foodName?.toLowerCase().includes(q));
+      }
+      if (dateKey) {
+        filtered = filtered.filter(l => l.date === dateKey);
+      }
+      return filtered;
+    }
+
+    function initHistory() {
+      const allLogs = loadLogs();
+      const grouped = groupLogsByDate(allLogs);
+
+      // Range label
+      const first = allLogs.length ? allLogs.reduce((a, b) => a.date < b.date ? a : b).date : null;
+      if (first) {
+        $('histRange').textContent = `Data dari ${formatDate(first)}`;
+      }
+
+      renderWeekChart(grouped);
+      renderAvgStats(grouped);
+      renderHistory(allLogs, grouped);
+
+      // Search/filter
+      let searchTimer;
+      $('searchInput')?.addEventListener('input', e => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          const q = e.target.value.trim();
+          const d = $('dateFilter').value;
+          const filtered = filterLogs(allLogs, q, d);
+          const g = groupLogsByDate(filtered);
+          renderHistory(filtered, g);
+        }, 250);
+      });
+
+      $('dateFilter')?.addEventListener('change', e => {
+        const d = e.target.value;
+        const q = $('searchInput').value.trim();
+        const filtered = filterLogs(allLogs, q, d);
+        const g = groupLogsByDate(filtered);
+        renderHistory(filtered, g);
+      });
+
+      // Delete individual
+      $('historyContainer')?.addEventListener('click', e => {
+        const btn = e.target.closest('.log-item-del');
+        if (!btn) return;
+        if (!confirm('Hapus item ini dari riwayat?')) return;
+        deleteLog(btn.dataset.id);
+        showToast('🗑 Log dihapus.', 'info');
+        location.reload();
+      });
+
+      // Clear all
+      $('btnClearAll')?.addEventListener('click', () => {
+        if (!confirm('Hapus SEMUA data riwayat? Tindakan ini tidak bisa dibatalkan.')) return;
+        localStorage.removeItem('nutriai_logs');
+        showToast('🗑 Semua data dihapus.', 'info');
+        location.reload();
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initHistory);
+    } else {
+      initHistory();
+    }
+  </script>
+</body>
+</html>

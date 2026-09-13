@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriAI – AI Nutrition Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-icon">🥗</span>
+      <span class="nav-title">NutriAI</span>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link active">Dashboard</a>
+      <a href="history.html" class="nav-link">Riwayat</a>
+    </div>
+    <button class="btn-settings" id="btnSettings" title="Pengaturan API Key">⚙️ API Key</button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-container">
+
+    <!-- DAILY SUMMARY CARDS -->
+    <section class="daily-summary">
+      <h2 class="section-title">Ringkasan Hari Ini</h2>
+      <div class="summary-cards">
+        <div class="summary-card card-calories">
+          <div class="card-label">Kalori</div>
+          <div class="card-value" id="totalCalories">0</div>
+          <div class="card-unit">/ <span id="goalCalories">2000</span> kcal</div>
+          <div class="card-bar"><div class="bar-fill" id="barCalories"></div></div>
+        </div>
+        <div class="summary-card card-protein">
+          <div class="card-label">Protein</div>
+          <div class="card-value" id="totalProtein">0</div>
+          <div class="card-unit">/ <span id="goalProtein">50</span> g</div>
+          <div class="card-bar"><div class="bar-fill" id="barProtein"></div></div>
+        </div>
+        <div class="summary-card card-carbs">
+          <div class="card-label">Karbohidrat</div>
+          <div class="card-value" id="totalCarbs">0</div>
+          <div class="card-unit">/ <span id="goalCarbs">250</span> g</div>
+          <div class="card-bar"><div class="bar-fill" id="barCarbs"></div></div>
+        </div>
+        <div class="summary-card card-fat">
+          <div class="card-label">Lemak</div>
+          <div class="card-value" id="totalFat">0</div>
+          <div class="card-unit">/ <span id="goalFat">65</span> g</div>
+          <div class="card-bar"><div class="bar-fill" id="barFat"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCAN SECTION -->
+    <section class="scan-section">
+      <h2 class="section-title">Scan Nutrisi Makanan</h2>
+      <div class="scan-card">
+        <!-- Upload Area -->
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">Foto / Upload Label Nutrisi</div>
+          <div class="upload-hint">Klik untuk pilih file atau drag & drop</div>
+          <input type="file" id="imageInput" accept="image/*" capture="environment" hidden />
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-area" id="previewArea" style="display:none;">
+          <img id="previewImg" src="" alt="Preview" class="preview-img" />
+          <button class="btn-clear" id="btnClear">✕ Ganti Foto</button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="scan-actions">
+          <button class="btn-primary" id="btnAnalyze" disabled>
+            <span id="analyzeIcon">🔍</span>
+            <span id="analyzeText">Analisis dengan AI</span>
+          </button>
+          <button class="btn-secondary" id="btnCamera">
+            📸 Buka Kamera
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState" style="display:none;">
+          <div class="spinner"></div>
+          <div class="loading-text">AI sedang menganalisis nutrisi...</div>
+        </div>
+
+        <!-- AI Result -->
+        <div class="result-card" id="resultCard" style="display:none;">
+          <div class="result-header">
+            <span class="result-icon">✅</span>
+            <span class="result-title">Hasil Analisis AI</span>
+          </div>
+          <div class="result-food-name" id="resultFoodName"></div>
+          <div class="result-serving" id="resultServing"></div>
+          <div class="result-nutrients" id="resultNutrients"></div>
+          <div class="result-notes" id="resultNotes"></div>
+          <div class="result-actions">
+            <button class="btn-primary" id="btnSave">💾 Simpan ke Log</button>
+            <button class="btn-outline" id="btnDiscard">Buang</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TODAY'S LOG -->
+    <section class="log-section">
+      <div class="log-header">
+        <h2 class="section-title">Log Hari Ini</h2>
+        <span class="log-date" id="logDate"></span>
+      </div>
+      <div class="log-list" id="logList">
+        <div class="log-empty" id="logEmpty">
+          Belum ada makanan yang dicatat hari ini. Mulai scan label nutrisi! 🍽️
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-overlay" id="settingsModal" style="display:none;">
+    <div class="modal" style="max-width:520px;">
+      <div class="modal-header">
+        <h3>⚙️ Pengaturan</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body" style="max-height:75vh;overflow-y:auto;">
+
+        <!-- API KEY -->
+        <label class="form-label">API Key</label>
+        <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-..." autocomplete="off" />
+        <p class="form-hint">Disimpan di localStorage browser. Tidak pernah dikirim ke server kami.</p>
+
+        <!-- ENDPOINT -->
+        <label class="form-label" style="margin-top:18px;">
+          Endpoint <span style="font-weight:400;color:var(--text-dim);font-size:0.78rem;">(OpenAI-compatible)</span>
+        </label>
+        <select class="form-input" id="endpointPreset" style="margin-bottom:8px;">
+          <option value="https://openrouter.ai/api/v1/chat/completions">OpenRouter</option>
+          <option value="https://api.openai.com/v1/chat/completions">OpenAI</option>
+          <option value="https://api.groq.com/openai/v1/chat/completions">Groq</option>
+          <option value="https://api.together.xyz/v1/chat/completions">Together AI</option>
+          <option value="http://localhost:11434/v1/chat/completions">Ollama (local)</option>
+          <option value="http://localhost:1234/v1/chat/completions">LM Studio (local)</option>
+          <option value="">Custom…</option>
+        </select>
+        <input type="url" class="form-input" id="endpointInput"
+               placeholder="https://your-provider.com/v1/chat/completions" />
+        <p class="form-hint">Pilih preset di atas atau ketik URL endpoint sendiri secara langsung.</p>
+
+        <!-- MODEL -->
+        <label class="form-label" style="margin-top:18px;">Nama Model</label>
+        <input type="text" class="form-input" id="modelInput"
+               placeholder="contoh: gpt-4o-mini, gemini-2.0-flash-exp:free, llama3-8b-8192" />
+        <p class="form-hint">Isi dengan nama model yang didukung oleh endpoint di atas.</p>
+
+        <hr style="margin:20px 0; border-color: var(--border);" />
+        <label class="form-label">Target Harian</label>
+        <div class="goals-grid">
+          <div><label class="form-label-small">Kalori (kcal)</label><input type="number" class="form-input" id="goalCalInput" value="2000" /></div>
+          <div><label class="form-label-small">Protein (g)</label><input type="number" class="form-input" id="goalProteinInput" value="50" /></div>
+          <div><label class="form-label-small">Karbo (g)</label><input type="number" class="form-input" id="goalCarbsInput" value="250" /></div>
+          <div><label class="form-label-small">Lemak (g)</label><input type="number" class="form-input" id="goalFatInput" value="65" /></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="btnSaveSettings">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Wire preset → endpointInput sync (before app.js loads)
+    document.addEventListener('DOMContentLoaded', () => {
+      const preset = document.getElementById('endpointPreset');
+      const input  = document.getElementById('endpointInput');
+      if (!preset || !input) return;
+      preset.addEventListener('change', () => {
+        if (preset.value) input.value = preset.value;
+      });
+      input.addEventListener('input', () => {
+        const match = Array.from(preset.options).find(o => o.value === input.value.trim());
+        preset.value = match ? match.value : '';
+      });
+    });
+  </script>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
